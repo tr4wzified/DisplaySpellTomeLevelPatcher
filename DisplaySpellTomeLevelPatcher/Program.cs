@@ -81,7 +81,7 @@ namespace DisplaySpellTomeLevelPatcher
                                             (halfCostPerk.EditorID != null && halfCostPerk.EditorID.Contains(skillLevel)))
                                         {
                                             if (book.Name?.String == null) continue;
-                                            spellLevelDictionary.Add(GetSpellNameFromSpellTome(book.Name.String), skillLevel);
+                                            spellLevelDictionary[GetSpellNameFromSpellTome(book.Name.String)] = skillLevel;
 
                                             Book bookToAdd = book.DeepCopy();
                                             bookToAdd.Name = GenerateSpellTomeName(book.Name.String, skillLevel);
@@ -106,7 +106,7 @@ namespace DisplaySpellTomeLevelPatcher
                 {
                     Scroll scrollToAdd = scroll.DeepCopy();
                     scrollToAdd.Name = GenerateScrollName(scroll.Name.String, skillLevel);
-                    state.PatchMod.Scrolls.Add(scrollToAdd);
+                    state.PatchMod.Scrolls.Set(scrollToAdd);
                 }
             }
             // debug
