@@ -8,6 +8,8 @@ using Mutagen.Bethesda.FormKeys.SkyrimSE;
 using Newtonsoft.Json.Linq;
 using System.Threading.Tasks;
 using System.IO;
+using System.Text.RegularExpressions;
+using Noggog;
 
 namespace DisplaySpellTomeLevelPatcher
 {
@@ -22,7 +24,7 @@ namespace DisplaySpellTomeLevelPatcher
                     ActionsForEmptyArgs = new RunDefaultPatcher()
                     {
                         IdentifyingModKey = "DisplaySpellTomeLevelPatcher.esp",
-                        BlockAutomaticExit = true,
+                        //BlockAutomaticExit = true,
                         TargetRelease = GameRelease.SkyrimSE
                     }
                 });
@@ -35,22 +37,47 @@ namespace DisplaySpellTomeLevelPatcher
             "Expert",
             "Master"
         };
+       
+        public static Dictionary<string, string> spellLevelDictionary = new Dictionary<string, string>();
 
-        public static string AppendToSpellTome(TranslatedString spellTome, string level)
+        public static string GenerateSpellTomeName(string spellTomeName, string level)
         {
-            return spellTome.ToString().Replace("Spell Tome:", $"Spell Tome ({level}):");
+            return spellTomeName.ToString().Replace("Spell Tome:", $"Spell Tome ({level}):");
+        }
+
+        public static string GenerateScrollName(string scrollName, string level)
+        {
+            return scrollName.ToString().Replace("Scroll of", $"Scroll ({level}):");
+        }
+
+        public static string GetSpellNameFromSpellTome(string spellTomeName)
+        {
+            try
+            {
+                return spellTomeName.Split(": ")[1];
+            }
+            catch (IndexOutOfRangeException)
+            {
+                return "";
+            }
+        }
+
+        public static string GetSpellNameFromScroll(string scrollName)
+        {
+            string[] splitScrollName = scrollName.Split(' ');
+            string scrollSpellName = string.Join(' ', splitScrollName.Skip(2).ToArray());
+            return scrollSpellName;
         }
 
         public static void RunPatch(IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
-            foreach (var book in state.LoadOrder.PriorityOrder.WinningOverrides<IBookGetter>())
+            foreach (var book in state.LoadOrder.PriorityOrder.Book().WinningOverrides())
             {
                 if (book.Keywords != null && book.Keywords.Contains(Skyrim.Keyword.VendorItemSpellTome))
                 {
-                    Book bookToModify = book.DeepCopy();
-                    if (bookToModify.Teaches != null)
+                    if (book.Teaches != null)
                     {
-                        foreach (var formLink in bookToModify.Teaches.ContainedFormLinks)
+                        foreach (var formLink in book.Teaches.ContainedFormLinks)
                         {
                             if (state.LinkCache.TryResolve<ISpellGetter>(formLink.FormKey, out var spell))
                             {
@@ -58,11 +85,17 @@ namespace DisplaySpellTomeLevelPatcher
                                 {
                                     foreach(string skillLevel in skillLevels)
                                     {
-                                        if ((halfCostPerk.Name != null && halfCostPerk.Name.ToString()!.Contains(skillLevel)) ||
+                                        if ((halfCostPerk.Name?.String != null && halfCostPerk.Name.String.Contains(skillLevel)) ||
                                             (halfCostPerk.EditorID != null && halfCostPerk.EditorID.Contains(skillLevel)))
                                         {
-                                            bookToModify.Name = AppendToSpellTome(bookToModify.Name!, skillLevel);
-                                            state.PatchMod.Books.Add(bookToModify);
+                                            if (book.Name?.String == null) continue;
+                                            string spellName = GetSpellNameFromSpellTome(book.Name.String);
+                                            if (spellName == "") continue;
+                                            spellLevelDictionary[spellName] = skillLevel;
+
+                                            Book bookToAdd = book.DeepCopy();
+                                            bookToAdd.Name = GenerateSpellTomeName(book.Name.String, skillLevel);
+                                            state.PatchMod.Books.Set(bookToAdd);
                                         }
                                     }
                                 }
@@ -73,6 +106,24 @@ namespace DisplaySpellTomeLevelPatcher
                 }
                 else continue;
             }
+
+            foreach (var scroll in state.LoadOrder.PriorityOrder.Scroll().WinningOverrides())
+            {
+                if (scroll.Name?.String == null) continue;
+
+                string scrollSpellName = GetSpellNameFromScroll(scroll.Name.ToString()!);
+                if (spellLevelDictionary.TryGetValue(scrollSpellName, out var skillLevel))
+                {
+                    Scroll scrollToAdd = scroll.DeepCopy();
+                    scrollToAdd.Name = GenerateScrollName(scroll.Name.String, skillLevel);
+                    state.PatchMod.Scrolls.Set(scrollToAdd);
+                }
+            }
+            // debug
+            //foreach(KeyValuePair<string, string> keyValuePair in spellLevelDictionary)
+            //{
+            //    Console.WriteLine($"{keyValuePair.Key}: { keyValuePair.Value}");
+            //}
         }
     }
 }
