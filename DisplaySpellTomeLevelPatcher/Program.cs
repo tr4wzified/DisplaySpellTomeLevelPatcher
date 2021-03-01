@@ -89,23 +89,22 @@ namespace DisplaySpellTomeLevelPatcher
                 string spellName = GetSpellNameFromSpellTome(book.Name.String);
                 if (spellName == "")
                 {
-                    System.Console.WriteLine($"{book.FormKey}: Could not get spell name from: {book.Name.String}");
+                    Console.WriteLine($"{book.FormKey}: Could not get spell name from: {book.Name.String}");
                     continue;
                 }
 
-                System.Console.WriteLine();
-                System.Console.WriteLine($"{book.FormKey}: Searching for level with perk: EDID {halfCostPerk.EditorID} and Name {halfCostPerk.Name?.String}");
+                Console.WriteLine($"{book.FormKey}: Searching for level with perk: EDID {halfCostPerk.EditorID} and Name {halfCostPerk.Name?.String}");
 
                 foreach (string skillLevel in skillLevels)
                 {
                     if (!NamedFieldsContain(halfCostPerk, skillLevel)) continue;
 
-                    System.Console.WriteLine($"{book.FormKey}: Registering {spellName} as {skillLevel}");
-                    spellLevelDictionary[spellName] = skillLevel;
+                    Console.WriteLine($"{book.FormKey}: Registering {spellName} as {skillLevel}");
 
                     string generatedName = GenerateSpellTomeName(book.Name.String, skillLevel);
                     if (generatedName == book.Name.String) continue;
 
+                    spellLevelDictionary[spellName] = skillLevel;
                     Book bookToAdd = book.DeepCopy();
                     bookToAdd.Name = generatedName;
                     state.PatchMod.Books.Set(bookToAdd);
