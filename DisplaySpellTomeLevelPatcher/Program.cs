@@ -28,6 +28,19 @@ namespace DisplaySpellTomeLevelPatcher
                 });
         }
 
+        public static readonly string[] skillLevels = {
+            "Novice",
+            "Apprentice",
+            "Adept",
+            "Expert",
+            "Master"
+        };
+
+        public static string AppendToSpellTome(TranslatedString spellTome, string level)
+        {
+            return spellTome.ToString().Replace("Spell Tome:", $"Spell Tome ({level}):");
+        }
+
         public static void RunPatch(IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
             foreach (var book in state.LoadOrder.PriorityOrder.WinningOverrides<IBookGetter>())
@@ -43,48 +56,17 @@ namespace DisplaySpellTomeLevelPatcher
                             {
                                 if (state.LinkCache.TryResolve<IPerkGetter>(spell.HalfCostPerk.FormKey, out var halfCostPerk))
                                 {
-                                    if (halfCostPerk.Name != null)
+                                    foreach(string skillLevel in skillLevels)
                                     {
-                                        bool modified = false;
-                                        if ((halfCostPerk.Name != null && halfCostPerk.Name.ToString()!.Contains("Novice")) ||
-                                            (halfCostPerk.EditorID != null && halfCostPerk.EditorID.Contains("Novice")))
+                                        if ((halfCostPerk.Name != null && halfCostPerk.Name.ToString()!.Contains(skillLevel)) ||
+                                            (halfCostPerk.EditorID != null && halfCostPerk.EditorID.Contains(skillLevel)))
                                         {
-                                            bookToModify.Name = bookToModify.Name!.ToString().Replace("Spell Tome:", "Spell Tome (Novice):");
-                                            modified = true;
-                                        }
-                                        else if ((halfCostPerk.Name != null && halfCostPerk.Name.ToString()!.Contains("Apprentice")) ||
-                                            (halfCostPerk.EditorID != null && halfCostPerk.EditorID.Contains("Apprentice")))
-                                        {
-                                            bookToModify.Name = bookToModify.Name!.ToString().Replace("Spell Tome:", "Spell Tome (Apprentice):");
-                                            modified = true;
-                                        }
-                                        else if ((halfCostPerk.Name != null && halfCostPerk.Name.ToString()!.Contains("Adept")) ||
-                                            (halfCostPerk.EditorID != null && halfCostPerk.EditorID.Contains("Adept")))
-                                        {
-                                            bookToModify.Name = bookToModify.Name!.ToString().Replace("Spell Tome:", "Spell Tome (Adept):");
-                                            modified = true;
-                                        }
-                                        else if ((halfCostPerk.Name != null && halfCostPerk.Name.ToString()!.Contains("Expert")) ||
-                                            (halfCostPerk.EditorID != null && halfCostPerk.EditorID.Contains("Expert")))
-                                        {
-                                            bookToModify.Name = bookToModify.Name!.ToString().Replace("Spell Tome:", "Spell Tome (Expert):");
-                                            modified = true;
-                                        }
-                                        else if ((halfCostPerk.Name != null && halfCostPerk.Name.ToString()!.Contains("Master")) ||
-                                            (halfCostPerk.EditorID != null && halfCostPerk.EditorID.Contains("Master")))
-                                        {
-                                            bookToModify.Name = bookToModify.Name!.ToString().Replace("Spell Tome:", "Spell Tome (Master):");
-                                            modified = true;
-                                        }
-
-                                        Console.WriteLine(book.Name + " => " + bookToModify.Name);
-
-                                        if (modified)
+                                            bookToModify.Name = AppendToSpellTome(bookToModify.Name!, skillLevel);
                                             state.PatchMod.Books.Add(bookToModify);
+                                        }
                                     }
                                 }
                             }
-                            Console.WriteLine(formLink);
                         }
                     }
 
