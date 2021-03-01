@@ -5,11 +5,10 @@ using Mutagen.Bethesda;
 using Mutagen.Bethesda.Synthesis;
 using Mutagen.Bethesda.Skyrim;
 using Mutagen.Bethesda.FormKeys.SkyrimSE;
-using Newtonsoft.Json.Linq;
+using Newtonsoft.Json;
 using System.Threading.Tasks;
 using System.IO;
 using System.Text.RegularExpressions;
-using Noggog;
 
 namespace DisplaySpellTomeLevelPatcher
 {
@@ -24,7 +23,7 @@ namespace DisplaySpellTomeLevelPatcher
                     ActionsForEmptyArgs = new RunDefaultPatcher()
                     {
                         IdentifyingModKey = "DisplaySpellTomeLevelPatcher.esp",
-                        //BlockAutomaticExit = true,
+                        BlockAutomaticExit = true,
                         TargetRelease = GameRelease.SkyrimSE
                     }
                 });
@@ -94,8 +93,11 @@ namespace DisplaySpellTomeLevelPatcher
                                             spellLevelDictionary[spellName] = skillLevel;
 
                                             Book bookToAdd = book.DeepCopy();
+                                            string generatedName = GenerateScrollName(book.Name.String, skillLevel);
+                                            if (generatedName == book.Name.String) continue;
                                             bookToAdd.Name = GenerateSpellTomeName(book.Name.String, skillLevel);
                                             state.PatchMod.Books.Set(bookToAdd);
+                                            break;
                                         }
                                     }
                                 }
@@ -111,7 +113,7 @@ namespace DisplaySpellTomeLevelPatcher
             {
                 if (scroll.Name?.String == null) continue;
 
-                string scrollSpellName = GetSpellNameFromScroll(scroll.Name.ToString()!);
+                string scrollSpellName = GetSpellNameFromScroll(scroll.Name.String);
                 if (spellLevelDictionary.TryGetValue(scrollSpellName, out var skillLevel))
                 {
                     Scroll scrollToAdd = scroll.DeepCopy();
@@ -119,11 +121,6 @@ namespace DisplaySpellTomeLevelPatcher
                     state.PatchMod.Scrolls.Set(scrollToAdd);
                 }
             }
-            // debug
-            //foreach(KeyValuePair<string, string> keyValuePair in spellLevelDictionary)
-            //{
-            //    Console.WriteLine($"{keyValuePair.Key}: { keyValuePair.Value}");
-            //}
         }
     }
 }
