@@ -109,6 +109,7 @@ namespace DisplaySpellTomeLevelPatcher
                 else continue;
             }
 
+            /*
             foreach (var scroll in state.LoadOrder.PriorityOrder.Scroll().WinningOverrides())
             {
                 if (scroll.Name?.String == null) continue;
@@ -121,6 +122,7 @@ namespace DisplaySpellTomeLevelPatcher
                     state.PatchMod.Scrolls.Set(scrollToAdd);
                 }
             }
+            */
         }
     }
 }
