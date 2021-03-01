@@ -9,6 +9,7 @@ using Newtonsoft.Json.Linq;
 using System.Threading.Tasks;
 using System.IO;
 using System.Text.RegularExpressions;
+using Noggog;
 
 namespace DisplaySpellTomeLevelPatcher
 {
@@ -51,7 +52,14 @@ namespace DisplaySpellTomeLevelPatcher
 
         public static string GetSpellNameFromSpellTome(string spellTomeName)
         {
-            return spellTomeName.Split(": ")[1];
+            try
+            {
+                return spellTomeName.Split(": ")[1];
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                return "";
+            }
         }
 
         public static string GetSpellNameFromScroll(string scrollName)
@@ -81,7 +89,9 @@ namespace DisplaySpellTomeLevelPatcher
                                             (halfCostPerk.EditorID != null && halfCostPerk.EditorID.Contains(skillLevel)))
                                         {
                                             if (book.Name?.String == null) continue;
-                                            spellLevelDictionary[GetSpellNameFromSpellTome(book.Name.String)] = skillLevel;
+                                            string spellName = GetSpellNameFromSpellTome(book.Name.String);
+                                            if (spellName == "") continue;
+                                            spellLevelDictionary[spellName] = skillLevel;
 
                                             Book bookToAdd = book.DeepCopy();
                                             bookToAdd.Name = GenerateSpellTomeName(book.Name.String, skillLevel);
