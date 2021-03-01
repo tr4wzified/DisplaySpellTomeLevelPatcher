@@ -8,6 +8,7 @@ using Mutagen.Bethesda.FormKeys.SkyrimSE;
 using Newtonsoft.Json.Linq;
 using System.Threading.Tasks;
 using System.IO;
+using System.Text.RegularExpressions;
 
 namespace DisplaySpellTomeLevelPatcher
 {
@@ -35,22 +36,40 @@ namespace DisplaySpellTomeLevelPatcher
             "Expert",
             "Master"
         };
+       
+        public static Dictionary<string, string> spellLevelDictionary = new Dictionary<string, string>();
 
-        public static string AppendToSpellTome(TranslatedString spellTome, string level)
+        public static string GenerateSpellTomeName(TranslatedString spellTomeName, string level)
         {
-            return spellTome.ToString().Replace("Spell Tome:", $"Spell Tome ({level}):");
+            return spellTomeName.ToString().Replace("Spell Tome:", $"Spell Tome ({level}):");
+        }
+
+        public static string GenerateScrollName(TranslatedString scrollName, string level)
+        {
+            return scrollName.ToString().Replace("Scroll of", $"Scroll ({level}):");
+        }
+
+        public static string GetSpellNameFromSpellTome(string spellTomeName)
+        {
+            return spellTomeName.Split(": ")[1];
+        }
+
+        public static string GetSpellNameFromScroll(string scrollName)
+        {
+            string[] splitScrollName = scrollName.Split(' ');
+            string scrollSpellName = string.Join(' ', splitScrollName.Skip(2).ToArray());
+            return scrollSpellName;
         }
 
         public static void RunPatch(IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
-            foreach (var book in state.LoadOrder.PriorityOrder.WinningOverrides<IBookGetter>())
+            foreach (var book in state.LoadOrder.PriorityOrder.Book().WinningOverrides())
             {
                 if (book.Keywords != null && book.Keywords.Contains(Skyrim.Keyword.VendorItemSpellTome))
                 {
-                    Book bookToModify = book.DeepCopy();
-                    if (bookToModify.Teaches != null)
+                    if (book.Teaches != null)
                     {
-                        foreach (var formLink in bookToModify.Teaches.ContainedFormLinks)
+                        foreach (var formLink in book.Teaches.ContainedFormLinks)
                         {
                             if (state.LinkCache.TryResolve<ISpellGetter>(formLink.FormKey, out var spell))
                             {
@@ -61,8 +80,11 @@ namespace DisplaySpellTomeLevelPatcher
                                         if ((halfCostPerk.Name != null && halfCostPerk.Name.ToString()!.Contains(skillLevel)) ||
                                             (halfCostPerk.EditorID != null && halfCostPerk.EditorID.Contains(skillLevel)))
                                         {
-                                            bookToModify.Name = AppendToSpellTome(bookToModify.Name!, skillLevel);
-                                            state.PatchMod.Books.Add(bookToModify);
+                                            spellLevelDictionary.Add(GetSpellNameFromSpellTome(book.Name!.ToString()!), skillLevel);
+
+                                            Book bookToAdd = book.DeepCopy();
+                                            bookToAdd.Name = GenerateSpellTomeName(bookToAdd.Name!, skillLevel);
+                                            state.PatchMod.Books.Add(bookToAdd);
                                         }
                                     }
                                 }
@@ -72,6 +94,24 @@ namespace DisplaySpellTomeLevelPatcher
 
                 }
                 else continue;
+            }
+
+            foreach(var scroll in state.LoadOrder.PriorityOrder.Scroll().WinningOverrides())
+            {
+                if (scroll.Name == null) continue;
+
+                string scrollSpellName = GetSpellNameFromScroll(scroll.Name.ToString()!);
+                if (spellLevelDictionary.TryGetValue(scrollSpellName, out var skillLevel))
+                {
+                    Scroll scrollToAdd = scroll.DeepCopy();
+                    scrollToAdd.Name = GenerateScrollName(scrollToAdd.Name!, skillLevel);
+                    state.PatchMod.Scrolls.Add(scrollToAdd);
+                }
+            }
+            // debug
+            foreach(KeyValuePair<string, string> keyValuePair in spellLevelDictionary)
+            {
+                Console.WriteLine($"{keyValuePair.Key}: { keyValuePair.Value}");
             }
         }
     }
