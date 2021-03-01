@@ -84,7 +84,7 @@ namespace DisplaySpellTomeLevelPatcher
 
                                             Book bookToAdd = book.DeepCopy();
                                             bookToAdd.Name = GenerateSpellTomeName(bookToAdd.Name!, skillLevel);
-                                            state.PatchMod.Books.Add(bookToAdd);
+                                            state.PatchMod.Books.Set(bookToAdd);
                                         }
                                     }
                                 }
