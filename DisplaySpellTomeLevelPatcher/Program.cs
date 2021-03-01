@@ -68,6 +68,14 @@ namespace DisplaySpellTomeLevelPatcher
             return scrollSpellName;
         }
 
+        public static bool NamedFieldsContain<TMajor>(TMajor named, string str)
+            where TMajor : INamedGetter, IMajorRecordCommonGetter
+        {
+            if (named.EditorID?.Contains(str) ?? false) return true;
+            if (named.Name?.Contains(str) ?? false) return true;
+            return false;
+        }
+
         public static void RunPatch(IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
             foreach (var book in state.LoadOrder.PriorityOrder.Book().WinningOverrides())
@@ -90,11 +98,7 @@ namespace DisplaySpellTomeLevelPatcher
 
                 foreach (string skillLevel in skillLevels)
                 {
-                    if ((!halfCostPerk.Name?.String?.Contains(skillLevel) ?? true)
-                        && (!halfCostPerk.EditorID?.Contains(skillLevel) ?? true))
-                    {
-                        continue;
-                    }
+                    if (!NamedFieldsContain(halfCostPerk, skillLevel)) continue;
 
                     System.Console.WriteLine($"{book.FormKey}: Registering {spellName} as {skillLevel}");
                     spellLevelDictionary[spellName] = skillLevel;
