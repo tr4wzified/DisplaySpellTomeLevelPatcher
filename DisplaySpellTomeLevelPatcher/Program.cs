@@ -68,46 +68,49 @@ namespace DisplaySpellTomeLevelPatcher
             return scrollSpellName;
         }
 
+        public static bool NamedFieldsContain<TMajor>(TMajor named, string str)
+            where TMajor : INamedGetter, IMajorRecordCommonGetter
+        {
+            if (named.EditorID?.Contains(str) ?? false) return true;
+            if (named.Name?.Contains(str) ?? false) return true;
+            return false;
+        }
+
         public static void RunPatch(IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
             foreach (var book in state.LoadOrder.PriorityOrder.Book().WinningOverrides())
             {
-                if (book.Keywords != null && book.Keywords.Contains(Skyrim.Keyword.VendorItemSpellTome))
+                if (book.Name?.String == null) continue;
+                if (!book.Keywords?.Contains(Skyrim.Keyword.VendorItemSpellTome) ?? true) continue;
+                if (book.Teaches is not IBookSpellGetter spellTeach) continue;
+                if (!spellTeach.Spell.TryResolve(state.LinkCache, out var spell)) continue;
+                if (!spell.HalfCostPerk.TryResolve(state.LinkCache, out var halfCostPerk)) continue;
+
+                string spellName = GetSpellNameFromSpellTome(book.Name.String);
+                if (spellName == "")
                 {
-                    if (book.Teaches != null)
-                    {
-                        foreach (var formLink in book.Teaches.ContainedFormLinks)
-                        {
-                            if (state.LinkCache.TryResolve<ISpellGetter>(formLink.FormKey, out var spell))
-                            {
-                                if (state.LinkCache.TryResolve<IPerkGetter>(spell.HalfCostPerk.FormKey, out var halfCostPerk))
-                                {
-                                    foreach(string skillLevel in skillLevels)
-                                    {
-                                        if ((halfCostPerk.Name?.String != null && halfCostPerk.Name.String.Contains(skillLevel)) ||
-                                            (halfCostPerk.EditorID != null && halfCostPerk.EditorID.Contains(skillLevel)))
-                                        {
-                                            if (book.Name?.String == null) continue;
-                                            string spellName = GetSpellNameFromSpellTome(book.Name.String);
-                                            if (spellName == "") continue;
-
-                                            string generatedName = GenerateSpellTomeName(book.Name.String, skillLevel);
-                                            if (generatedName == book.Name.String) continue;
-
-                                            spellLevelDictionary[spellName] = skillLevel;
-                                            Book bookToAdd = book.DeepCopy();
-                                            bookToAdd.Name = generatedName;
-                                            state.PatchMod.Books.Set(bookToAdd);
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
+                    System.Console.WriteLine($"{book.FormKey}: Could not get spell name from: {book.Name.String}");
+                    continue;
                 }
-                else continue;
+
+                System.Console.WriteLine();
+                System.Console.WriteLine($"{book.FormKey}: Searching for level with perk: EDID {halfCostPerk.EditorID} and Name {halfCostPerk.Name?.String}");
+
+                foreach (string skillLevel in skillLevels)
+                {
+                    if (!NamedFieldsContain(halfCostPerk, skillLevel)) continue;
+
+                    System.Console.WriteLine($"{book.FormKey}: Registering {spellName} as {skillLevel}");
+                    spellLevelDictionary[spellName] = skillLevel;
+
+                    string generatedName = GenerateSpellTomeName(book.Name.String, skillLevel);
+                    if (generatedName == book.Name.String) continue;
+
+                    Book bookToAdd = book.DeepCopy();
+                    bookToAdd.Name = generatedName;
+                    state.PatchMod.Books.Set(bookToAdd);
+                    break;
+                }
             }
 
             /*
