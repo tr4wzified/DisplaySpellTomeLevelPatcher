@@ -90,12 +90,13 @@ namespace DisplaySpellTomeLevelPatcher
                                             if (book.Name?.String == null) continue;
                                             string spellName = GetSpellNameFromSpellTome(book.Name.String);
                                             if (spellName == "") continue;
-                                            spellLevelDictionary[spellName] = skillLevel;
 
-                                            Book bookToAdd = book.DeepCopy();
-                                            string generatedName = GenerateScrollName(book.Name.String, skillLevel);
+                                            string generatedName = GenerateSpellTomeName(book.Name.String, skillLevel);
                                             if (generatedName == book.Name.String) continue;
-                                            bookToAdd.Name = GenerateSpellTomeName(book.Name.String, skillLevel);
+
+                                            spellLevelDictionary[spellName] = skillLevel;
+                                            Book bookToAdd = book.DeepCopy();
+                                            bookToAdd.Name = generatedName;
                                             state.PatchMod.Books.Set(bookToAdd);
                                             break;
                                         }
