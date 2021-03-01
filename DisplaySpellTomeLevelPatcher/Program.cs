@@ -56,7 +56,7 @@ namespace DisplaySpellTomeLevelPatcher
             {
                 return spellTomeName.Split(": ")[1];
             }
-            catch (ArgumentOutOfRangeException)
+            catch (IndexOutOfRangeException)
             {
                 return "";
             }
