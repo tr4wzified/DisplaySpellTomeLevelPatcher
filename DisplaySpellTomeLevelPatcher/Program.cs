@@ -93,13 +93,9 @@ namespace DisplaySpellTomeLevelPatcher
                     continue;
                 }
 
-                Console.WriteLine($"{book.FormKey}: Searching for level with perk: EDID {halfCostPerk.EditorID} and Name {halfCostPerk.Name?.String}");
-
                 foreach (string skillLevel in skillLevels)
                 {
                     if (!NamedFieldsContain(halfCostPerk, skillLevel)) continue;
-
-                    Console.WriteLine($"{book.FormKey}: Registering {spellName} as {skillLevel}");
 
                     string generatedName = GenerateSpellTomeName(book.Name.String, skillLevel);
                     if (generatedName == book.Name.String) continue;
