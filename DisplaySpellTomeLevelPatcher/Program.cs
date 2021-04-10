@@ -18,15 +18,8 @@ namespace DisplaySpellTomeLevelPatcher
         {
             return SynthesisPipeline.Instance
                 .AddPatch<ISkyrimMod, ISkyrimModGetter>(RunPatch)
-                .Run(args, new RunPreferences()
-                {
-                    ActionsForEmptyArgs = new RunDefaultPatcher()
-                    {
-                        IdentifyingModKey = "DisplaySpellTomeLevelPatcher.esp",
-                        BlockAutomaticExit = true,
-                        TargetRelease = GameRelease.SkyrimSE
-                    }
-                });
+                .SetTypicalOpen(GameRelease.SkyrimSE, "DisplaySpellTomeLevelPatcher.esp")
+                .Run(args);
         }
 
         public static readonly string[] skillLevels = {
