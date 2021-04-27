@@ -125,6 +125,10 @@ namespace DisplaySpellTomeLevelPatcher
                         break;
                     }
                 }
+                if (halfCostPerkContext.ModKey == Vokrii && bookName.Contains(levelFormatVariable))
+                {
+                    bookName.Replace(levelFormatVariable, "Novice");
+                }
                 if (bookName.Contains(pluginFormatVariable))
                 {
                     bookName = bookName.Replace(pluginFormatVariable, book.FormKey.ModKey.Name.ToString());
