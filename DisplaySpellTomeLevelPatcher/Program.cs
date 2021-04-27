@@ -27,25 +27,29 @@ namespace DisplaySpellTomeLevelPatcher
 
         public static ModKey Vokrii = ModKey.FromNameAndExtension("Vokrii - Minimalistic Perks of Skyrim.esp");
 
-        public static HashSet<string> skillLevels = new HashSet<string>() {
+        public static readonly HashSet<string> skillLevels = new HashSet<string>() {
             "Novice",
             "Apprentice",
             "Adept",
             "Expert",
             "Master"
         };
-       
+
+        public static readonly HashSet<string> magicSchools = new HashSet<string>()
+        {
+            "Restoration",
+            "Destruction",
+            "Conjuration",
+            "Illusion",
+            "Alteration"
+        };
+
+        public const string levelFormatVariable = "<level>";
+        public const string spellFormatVariable = "<spell>";
+        public const string pluginFormatVariable = "<plugin>";
+        public const string schoolFormatVariable = "<school>";
+
         public static Dictionary<string, string> spellLevelDictionary = new Dictionary<string, string>();
-
-        public static string GenerateSpellTomeName(string spellTomeName, string level)
-        {
-            return spellTomeName.Replace("Spell Tome:", $"Spell Tome ({level}):");
-        }
-
-        public static string GenerateAlternativeSpellTomeName(string spellTomeName, string level)
-        {
-            return spellTomeName.Replace("Spell Tome:", $"{level} Spell Tome:");
-        }
 
         public static string GenerateScrollName(string scrollName, string level)
         {
@@ -70,7 +74,6 @@ namespace DisplaySpellTomeLevelPatcher
             string scrollSpellName = string.Join(' ', splitScrollName.Skip(2).ToArray());
             return scrollSpellName;
         }
-
         public static bool NamedFieldsContain<TMajor>(TMajor named, string str)
             where TMajor : INamedGetter, IMajorRecordCommonGetter
         {
@@ -92,8 +95,8 @@ namespace DisplaySpellTomeLevelPatcher
 
                 if (book.Name?.String == null) continue;
                 if (!book.Keywords?.Contains(Skyrim.Keyword.VendorItemSpellTome) ?? true) continue;
-                if (book.Teaches is not IBookSpellGetter spellTeach) continue;
-                if (!spellTeach.Spell.TryResolve(state.LinkCache, out var spell)) continue;
+                if (book.Teaches is not IBookSpellGetter teachedSpell) continue;
+                if (!teachedSpell.Spell.TryResolve(state.LinkCache, out var spell)) continue;
                 if (!state.LinkCache.TryResolveContext(spell.HalfCostPerk.FormKey, spell.HalfCostPerk.Type, out var halfCostPerkContext)) continue;
                 var halfCostPerk = (IPerkGetter)halfCostPerkContext.Record;
                 if (halfCostPerk == null) continue;
@@ -105,22 +108,50 @@ namespace DisplaySpellTomeLevelPatcher
                     continue;
                 }
 
-                foreach (string skillLevel in skillLevels)
+                string bookName = _settings.Value.Format;
+                bool changed = false;
+                if (bookName.Contains(levelFormatVariable))
                 {
-                    if (halfCostPerkContext.ModKey == Vokrii && halfCostPerk.Description != null)
+                    foreach (string skillLevel in skillLevels)
                     {
-                        if (!DescriptionContain(halfCostPerk, skillLevel)) continue;
+                        if (halfCostPerkContext.ModKey == Vokrii && halfCostPerk.Description != null)
+                        {
+                            if (!DescriptionContain(halfCostPerk, skillLevel)) continue;
+                        }
+                        else if (!NamedFieldsContain(halfCostPerk, skillLevel)) continue;
+
+                        bookName = bookName.Replace(levelFormatVariable, skillLevel);
+                        changed = true;
+                        break;
                     }
-                    else if (!NamedFieldsContain(halfCostPerk, skillLevel)) continue;
-
-                    string generatedName = _settings.Value.AlternativeNaming ? GenerateAlternativeSpellTomeName(book.Name.String, skillLevel) : GenerateSpellTomeName(book.Name.String, skillLevel);
-                    if (generatedName == book.Name.String) continue;
-
-                    //spellLevelDictionary[spellName] = skillLevel;
+                }
+                if (bookName.Contains(pluginFormatVariable))
+                {
+                    bookName = bookName.Replace(pluginFormatVariable, book.FormKey.ModKey.Name.ToString());
+                    changed = true;
+                }
+                if (bookName.Contains(schoolFormatVariable))
+                {
+                    foreach (string spellSchool in magicSchools)
+                    {
+                        if (NamedFieldsContain(halfCostPerk, spellSchool) || DescriptionContain(halfCostPerk, spellSchool))
+                        {
+                            bookName = bookName.Replace(schoolFormatVariable, spellSchool);
+                            changed = true;
+                            break;
+                        }
+                    }
+                }
+                if (bookName.Contains(spellFormatVariable))
+                {
+                    bookName = bookName.Replace(spellFormatVariable, GetSpellNameFromSpellTome(book.Name.String));
+                    changed = true;
+                }
+                if (changed && book.Name.String != bookName)
+                {
                     Book bookToAdd = book.DeepCopy();
-                    bookToAdd.Name = generatedName;
+                    bookToAdd.Name = bookName;
                     state.PatchMod.Books.Set(bookToAdd);
-                    break;
                 }
             }
 
@@ -139,5 +170,6 @@ namespace DisplaySpellTomeLevelPatcher
             }
             */
         }
+
     }
 }
