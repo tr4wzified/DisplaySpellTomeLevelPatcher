@@ -9,6 +9,7 @@ using Newtonsoft.Json;
 using System.Threading.Tasks;
 using System.IO;
 using System.Text.RegularExpressions;
+using System.Collections.Immutable;
 
 namespace DisplaySpellTomeLevelPatcher
 {
@@ -22,7 +23,9 @@ namespace DisplaySpellTomeLevelPatcher
                 .Run(args);
         }
 
-        public static readonly string[] skillLevels = {
+        public static ModKey Vokrii = ModKey.FromNameAndExtension("Vokrii - Minimalistic Perks of Skyrim.esp");
+
+        public static HashSet<string> skillLevels = new HashSet<string>() {
             "Novice",
             "Apprentice",
             "Adept",
@@ -69,15 +72,24 @@ namespace DisplaySpellTomeLevelPatcher
             return false;
         }
 
+        public static bool DescriptionContain(IPerkGetter perkGetter, string str)
+        {
+            return perkGetter.Description?.String?.Contains(str) ?? false;
+        }
+
         public static void RunPatch(IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
         {
-            foreach (var book in state.LoadOrder.PriorityOrder.Book().WinningOverrides())
+            foreach (var bookContext in state.LoadOrder.PriorityOrder.Book().WinningContextOverrides())
             {
+                IBookGetter book = bookContext.Record;
+
                 if (book.Name?.String == null) continue;
                 if (!book.Keywords?.Contains(Skyrim.Keyword.VendorItemSpellTome) ?? true) continue;
                 if (book.Teaches is not IBookSpellGetter spellTeach) continue;
                 if (!spellTeach.Spell.TryResolve(state.LinkCache, out var spell)) continue;
-                if (!spell.HalfCostPerk.TryResolve(state.LinkCache, out var halfCostPerk)) continue;
+                if (!state.LinkCache.TryResolveContext(spell.HalfCostPerk.FormKey, spell.HalfCostPerk.Type, out var halfCostPerkContext)) continue;
+                var halfCostPerk = (IPerkGetter)halfCostPerkContext.Record;
+                if (halfCostPerk == null) continue;
 
                 string spellName = GetSpellNameFromSpellTome(book.Name.String);
                 if (spellName == "")
@@ -88,12 +100,16 @@ namespace DisplaySpellTomeLevelPatcher
 
                 foreach (string skillLevel in skillLevels)
                 {
-                    if (!NamedFieldsContain(halfCostPerk, skillLevel)) continue;
+                    if (halfCostPerkContext.ModKey == Vokrii && halfCostPerk.Description != null)
+                    {
+                        if (!DescriptionContain(halfCostPerk, skillLevel)) continue;
+                    }
+                    else if (!NamedFieldsContain(halfCostPerk, skillLevel)) continue;
 
                     string generatedName = GenerateSpellTomeName(book.Name.String, skillLevel);
                     if (generatedName == book.Name.String) continue;
 
-                    spellLevelDictionary[spellName] = skillLevel;
+                    //spellLevelDictionary[spellName] = skillLevel;
                     Book bookToAdd = book.DeepCopy();
                     bookToAdd.Name = generatedName;
                     state.PatchMod.Books.Set(bookToAdd);

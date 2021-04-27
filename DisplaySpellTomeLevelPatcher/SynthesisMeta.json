@@ -1,6 +1,8 @@
 {
   "Nickname": "DisplaySpellTomeLevelPatcher",
-  "HideByDefault": false,
-  "OneLineDescription": "Adds the Spell Tome level (Adept, Apprentice etc.) to the name of the Spell Tome",
-  "LongDescription": ""
+  "Visibility": "Exclude",
+  "OneLineDescription": "",
+  "LongDescription": "",
+  "PreferredAutoVersioning": "Default",
+  "RequiredMods": []
 }
