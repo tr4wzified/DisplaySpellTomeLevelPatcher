@@ -91,64 +91,67 @@ namespace DisplaySpellTomeLevelPatcher {
         }
 
         public static void RunPatch(IPatcherState<ISkyrimMod, ISkyrimModGetter> state) {
-            bool hasBetterSpellLearning = BetterSpellLearning != null;
+            bool hasBetterSpellLearning = state.LoadOrder.PriorityOrder.HasMod(BetterSpellLearning);
 
             foreach(var bookContext in state.LoadOrder.PriorityOrder.Book().WinningContextOverrides()) {
                 IBookGetter book = bookContext.Record;
-
-                if(book.Name?.String == null) {
-                    continue;
-                }
-                if(!book.Keywords?.Contains(Skyrim.Keyword.VendorItemSpellTome) ?? true) {
-                    continue;
-                }
-                ISpellGetter? spell = null;
-                if(book.Teaches is IBookSpellGetter teachedSpell) {
-                    if(teachedSpell.Spell.TryResolve(state.LinkCache, out var tmp)) {
-                        spell = tmp;
-                    }
-                }
-                if(spell == null) {
-                    if(hasBetterSpellLearning) {
-                        spell = GetSpellBetterSpellLearning(state, book);
-                    }
-                }
-                if(spell == null) {
-                    continue;
-                }
-                if(spell.Name?.String == null) {
-                    continue;
-                }
-
-                var spellName = spell.Name.String;
-
-                var spellInfo = GetSpellInfo(state, spell);
-
-                var renameFormat = _settings.Value.Format;
-
-                var schoolName = "";
-                var levelName = "";
-                var requiresSpellInfo = renameFormat.Contains(schoolFormatVariable) || renameFormat.Contains(levelFormatVariable);
-                if(requiresSpellInfo) {
-                    if(spellInfo == null) {
-                        Console.WriteLine("    Cannot determine school and level for book: " + book.Name.String);
+                try {
+                    if(book.Name?.String == null) {
                         continue;
                     }
-                    var school = spellInfo.Item1;
-                    schoolName = GetSchoolName(school);
+                    if(!book.Keywords?.Contains(Skyrim.Keyword.VendorItemSpellTome) ?? true) {
+                        continue;
+                    }
+                    ISpellGetter? spell = null;
+                    if(book.Teaches is IBookSpellGetter teachedSpell) {
+                        if(teachedSpell.Spell.TryResolve(state.LinkCache, out var tmp)) {
+                            spell = tmp;
+                        }
+                    }
+                    if(spell == null) {
+                        if(hasBetterSpellLearning) {
+                            spell = GetSpellBetterSpellLearning(state, book);
+                        }
+                    }
+                    if(spell == null) {
+                        continue;
+                    }
+                    if(spell.Name?.String == null) {
+                        continue;
+                    }
+
+                    var spellName = spell.Name.String;
+
+                    var spellInfo = GetSpellInfo(state, spell);
+
+                    var renameFormat = _settings.Value.Format;
+
+                    var schoolName = "";
+                    var levelName = "";
+                    var requiresSpellInfo = renameFormat.Contains(schoolFormatVariable) || renameFormat.Contains(levelFormatVariable);
+                    if(requiresSpellInfo) {
+                        if(spellInfo == null) {
+                            Console.WriteLine("    Cannot determine school and level for book: " + book.Name.String);
+                            continue;
+                        }
+                        var school = spellInfo.Item1;
+                        schoolName = GetSchoolName(school);
 
 
-                    var level = spellInfo.Item2;
-                    levelName = levelNames[level];
+                        var level = spellInfo.Item2;
+                        levelName = levelNames[level];
+                    }
+                    var pluginName = book.FormKey.ModKey.Name.ToString();
+
+
+                    var newName = renameFormat.Replace(levelFormatVariable, levelName).Replace(pluginFormatVariable, pluginName).Replace(schoolFormatVariable, schoolName).Replace(spellFormatVariable, spellName);
+
+                    Console.WriteLine(book.Name.String + "->" + newName);
+
+                    state.PatchMod.Books.GetOrAddAsOverride(book).Name = newName;
+                } catch(Exception e) {
+                    throw RecordException.Enrich(e, bookContext.ModKey, book);
                 }
-                var pluginName = book.FormKey.ModKey.Name.ToString();
-
-
-                var newName = renameFormat.Replace(levelFormatVariable, levelName).Replace(pluginFormatVariable, pluginName).Replace(schoolFormatVariable, schoolName).Replace(spellFormatVariable, spellName);
-
-                Console.WriteLine(book.Name.String + "->" + newName);
-
-                state.PatchMod.Books.GetOrAddAsOverride(book).Name = newName;
             }
         }
 
