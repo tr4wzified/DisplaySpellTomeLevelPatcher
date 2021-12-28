@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 using System.Collections.Immutable;
 
 namespace DisplaySpellTomeLevelPatcher {
-    public class Program {
+    public static class Program {
         private static Lazy<Settings> _settings = null!;
         public static Task<int> Main(string[] args) {
             return SynthesisPipeline.Instance
@@ -45,7 +45,7 @@ namespace DisplaySpellTomeLevelPatcher {
             }
         }
 
-
+        public static readonly HashSet<uint> AllowedMinimumSkillLevels = new() { 0, 25, 50, 75, 100 };
         public static Tuple<ActorValue, int>? GetSpellInfo(IPatcherState<ISkyrimMod, ISkyrimModGetter> state, ISpellGetter spell) {
             double maxCost = -1.0;
             int maxLevel = -1;
@@ -60,7 +60,12 @@ namespace DisplaySpellTomeLevelPatcher {
                     if(cost > maxCost) {
                         maxCost = cost;
                         maxBaseEffect = baseEffect;
+
+                        if(!AllowedMinimumSkillLevels.Contains(baseEffect.MinimumSkillLevel)) {
+                            Console.WriteLine("    Unexpected minimum skill level for magic effect:" + baseEffect.FormKey);
+                        }
                         maxLevel = (int)(baseEffect.MinimumSkillLevel / 25);
+                        maxLevel = Math.Max(0, Math.Min(4, maxLevel));
                     }
                 }
             }
@@ -150,7 +155,7 @@ namespace DisplaySpellTomeLevelPatcher {
 
                     state.PatchMod.Books.GetOrAddAsOverride(book).Name = newName;
                 } catch(Exception e) {
-                    throw RecordException.Enrich(e, bookContext.ModKey, book);
+                    Console.WriteLine(RecordException.Enrich(e, bookContext.ModKey, book).ToString());
                 }
             }
         }
