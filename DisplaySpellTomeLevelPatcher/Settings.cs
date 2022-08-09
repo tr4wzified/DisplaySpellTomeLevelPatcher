@@ -23,5 +23,14 @@ namespace DisplaySpellTomeLevelPatcher
             { "ShadowSpellPackage.esp", "Shadow Spell Package" },
             { "PathOfTheAntiMage.esp", "Path of the Anti-Mage" }
         };
+
+        [SynthesisTooltip(@"These are the level names that will be used for <level>. You can optionally shorten them or replace them with another name here.")]
+        public string[] LevelNames = new string[5] {
+            "Novice",
+            "Apprentice",
+            "Adept",
+            "Expert",
+            "Master"
+        };
     }
 }
