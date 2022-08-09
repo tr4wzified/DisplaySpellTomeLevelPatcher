@@ -29,13 +29,13 @@ namespace DisplaySpellTomeLevelPatcher
 
         public readonly static ModKey BetterSpellLearning = ModKey.FromNameAndExtension("Better Spell Learning.esp");
 
-        public const string levelFormatVariable = "<level>";
-        public const string spellFormatVariable = "<spell>";
-        public const string pluginFormatVariable = "<plugin>";
-        public const string modFormatVariable = "<mod>";
-        public const string schoolFormatVariable = "<school>";
+        public const string LevelFormat = "<level>";
+        public const string SpellFormat = "<spell>";
+        public const string PluginFormat = "<plugin>";
+        public const string ModFormat = "<mod>";
+        public const string SchoolFormat = "<school>";
 
-        public readonly static Dictionary<ActorValue, string> magicSchools = new() {
+        public readonly static Dictionary<ActorValue, string> MagicSchools = new() {
             { ActorValue.Alteration, "Alteration" },
             { ActorValue.Conjuration, "Conjuration" },
             { ActorValue.Destruction, "Destruction" },
@@ -46,14 +46,10 @@ namespace DisplaySpellTomeLevelPatcher
 
         public static string GetSchoolName(ActorValue av)
         {
-            if (magicSchools.ContainsKey(av))
-            {
-                return magicSchools[av];
-            }
-            else
-            {
-                return "None";
-            }
+            if (MagicSchools.ContainsKey(av))
+                return MagicSchools[av];
+
+            return "None";
         }
 
         public static readonly HashSet<uint> AllowedMinimumSkillLevels = new() { 0, 25, 50, 75, 100 };
@@ -65,9 +61,7 @@ namespace DisplaySpellTomeLevelPatcher
             foreach (var effect in spell.Effects)
             {
                 if (effect.Data == null)
-                {
                     continue;
-                }
 
                 if (effect.BaseEffect.TryResolve(state.LinkCache, out var baseEffect))
                 {
@@ -79,22 +73,20 @@ namespace DisplaySpellTomeLevelPatcher
                         maxBaseEffect = baseEffect;
 
                         if (!AllowedMinimumSkillLevels.Contains(baseEffect.MinimumSkillLevel))
-                        {
                             Console.WriteLine("Unexpected minimum skill level for magic effect:" + baseEffect.FormKey);
-                        }
+
                         maxLevel = (int)(baseEffect.MinimumSkillLevel / 25);
                         maxLevel = Math.Max(0, Math.Min(4, maxLevel));
                     }
                 }
             }
             if (maxBaseEffect == null)
-            {
                 return null;
-            }
+
             return new Tuple<ActorValue, int>(maxBaseEffect.MagicSkill, maxLevel);
         }
 
-        /// Gets the spell effect for Better Spell Learning affected tomes
+        // Gets the spell effect for Better Spell Learning affected tomes
         public static ISpellGetter? GetBSLSpell(IPatcherState<ISkyrimMod, ISkyrimModGetter> state, IBookGetter book)
         {
             var spellTomeReadScript = book.VirtualMachineAdapter?.Scripts.FirstOrDefault(s => s.Name == "SpellTomeReadScript");
@@ -102,8 +94,8 @@ namespace DisplaySpellTomeLevelPatcher
 
             if (spellLearnedProperty?.Object.TryResolve<ISpellGetter>(state.LinkCache, out var spell) ?? false)
                 return spell;
-            else
-                return null;
+
+            return null;
         }
 
         public static void RunPatch(IPatcherState<ISkyrimMod, ISkyrimModGetter> state)
@@ -137,7 +129,7 @@ namespace DisplaySpellTomeLevelPatcher
                     var schoolName = "";
                     var levelName = "";
                     var modName = "";
-                    if (settings.Format.Contains(modFormatVariable))
+                    if (settings.Format.Contains(ModFormat))
                     {
                         if (!settings.PluginModNamePairs.TryGetValue(bookContext.ModKey.FileName, out modName))
                         {
@@ -145,7 +137,7 @@ namespace DisplaySpellTomeLevelPatcher
                         }
                     }
 
-                    var requiresSpellInfo = settings.Format.Contains(schoolFormatVariable) || settings.Format.Contains(levelFormatVariable);
+                    var requiresSpellInfo = settings.Format.Contains(SchoolFormat) || settings.Format.Contains(LevelFormat);
                     if (requiresSpellInfo)
                     {
                         if (spellInfo == null)
@@ -154,7 +146,7 @@ namespace DisplaySpellTomeLevelPatcher
                             continue;
                         }
                         var school = spellInfo.Item1;
-                        schoolName = magicSchools[school];
+                        schoolName = MagicSchools[school];
 
 
                         var level = spellInfo.Item2;
@@ -163,7 +155,7 @@ namespace DisplaySpellTomeLevelPatcher
                     var pluginName = book.FormKey.ModKey.Name;
 
 
-                    var newName = settings.Format.Replace(levelFormatVariable, levelName).Replace(pluginFormatVariable, pluginName).Replace(schoolFormatVariable, schoolName).Replace(spellFormatVariable, spellName).Replace(modFormatVariable, modName);
+                    var newName = settings.Format.Replace(LevelFormat, levelName).Replace(PluginFormat, pluginName).Replace(SchoolFormat, schoolName).Replace(SpellFormat, spellName).Replace(ModFormat, modName);
 
                     Console.WriteLine(book.Name.String + "->" + newName);
 

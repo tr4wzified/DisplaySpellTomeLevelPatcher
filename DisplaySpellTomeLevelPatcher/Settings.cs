@@ -9,7 +9,7 @@ namespace DisplaySpellTomeLevelPatcher
         public string Format { get; set; } = "Spell Tome (<level>): <spell>";
 
         [SynthesisTooltip(@"Specify your own format for mod names (<mod>) here! When a plugin name wasn't found here, the patcher will try and automatically convert the plugin name to the mod name - results may vary.")]
-        public Dictionary<string, string> PluginModNamePairs { get; set; } = new Dictionary<string, string>()
+        public Dictionary<string, string> PluginModNamePairs { get; set; } = new()
         {
             { "Skyrim.esm", "Skyrim" },
             { "Dawnguard.esm", "Dawnguard" },
@@ -24,8 +24,8 @@ namespace DisplaySpellTomeLevelPatcher
             { "PathOfTheAntiMage.esp", "Path of the Anti-Mage" }
         };
 
-        [SynthesisTooltip(@"These are the level names that will be used for <level>. You can optionally shorten them or replace them with another name here.")]
-        public string[] LevelNames = new string[5] {
+        [SynthesisTooltip(@"These are the level names that will be used for <level>. You can optionally shorten them or replace them with another name here. Default: Novice, Apprentice, Adept, Expert, Master")]
+        public List<string> LevelNames { get; set; } = new() {
             "Novice",
             "Apprentice",
             "Adept",
